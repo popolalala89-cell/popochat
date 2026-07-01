@@ -20,17 +20,27 @@ import { chatbubblesOutline, addOutline, logOutOutline, megaphoneOutline } from 
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
-import { Group, ChatMessage } from '../types';
+import { Group, ChatMessage, UserData } from '../types';
 
 const ChatListPage: React.FC = () => {
   const { userData, logout } = useAuth();
   const history = useHistory();
   const [groups, setGroups] = useState<Group[]>([]);
+  const [allUsers, setAllUsers] = useState<Record<string, UserData>>({});
   const [lastMessages, setLastMessages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userData) return;
+
+    // Ambil semua user (buat nampilin nama di DM)
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+      const map: Record<string, UserData> = {};
+      snap.forEach((d) => {
+        map[d.id] = { uid: d.id, ...d.data() } as UserData;
+      });
+      setAllUsers(map);
+    });
 
     // Ambil grup yang anggotanya termasuk user ini
     const q = query(
@@ -43,6 +53,11 @@ const ChatListPage: React.FC = () => {
       snapshot.forEach((doc) => {
         grpList.push({ id: doc.id, ...doc.data() } as Group);
       });
+
+      // Urut: DM duluan, baru grup, lalu broadcast
+      const typeOrder = { dm: 0, discussion: 1, broadcast: 2 };
+      grpList.sort((a, b) => (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9));
+
       setGroups(grpList);
 
       // Ambil pesan terakhir tiap grup
@@ -67,12 +82,19 @@ const ChatListPage: React.FC = () => {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => { unsubUsers(); unsubscribe(); };
   }, [userData]);
 
   async function handleLogout() {
     await logout();
     history.push('/login');
+  }
+
+  function getDMPartner(group: Group): UserData | null {
+    if (!userData || group.type !== 'dm') return null;
+    // Cari user lain di DM ini
+    const partnerUid = group.members.find((uid) => uid !== userData.uid);
+    return partnerUid ? allUsers[partnerUid] || null : null;
   }
 
   function formatTime(ts: number): string {
@@ -82,6 +104,54 @@ const ChatListPage: React.FC = () => {
       return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
     }
     return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+  }
+
+  function renderAvatar(group: Group) {
+    if (group.type === 'dm') {
+      const partner = getDMPartner(group);
+      const initial = (partner?.displayName || partner?.email || '?')[0].toUpperCase();
+      const colorMap: Record<string, string> = {
+        admin: '#f44336',
+        broadcaster: '#FF9800',
+        member: '#7E57C2',
+      };
+      return (
+        <IonAvatar slot="start">
+          <div style={{
+            width: 44, height: 44, borderRadius: '50%',
+            background: colorMap[partner?.role || 'member'],
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 20, color: '#fff', fontWeight: 600,
+          }}>
+            {initial}
+          </div>
+        </IonAvatar>
+      );
+    }
+
+    // Grup biasa / broadcast
+    return (
+      <IonAvatar slot="start">
+        <div style={{
+          width: 44, height: 44, borderRadius: '50%',
+          background: group.type === 'broadcast' ? '#4CAF50' : '#1976d2',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22,
+        }}>
+          {group.type === 'broadcast' ? '📢' : '💬'}
+        </div>
+      </IonAvatar>
+    );
+  }
+
+  function renderBadge(group: Group) {
+    if (group.type === 'broadcast') {
+      return <IonBadge color="success" slot="end">Broadcast</IonBadge>;
+    }
+    if (group.type === 'dm') {
+      return <IonBadge color="tertiary" slot="end">Personal</IonBadge>;
+    }
+    return null;
   }
 
   return (
@@ -117,41 +187,39 @@ const ChatListPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Daftar Grup */}
+        {/* Daftar Chat */}
         {groups.length === 0 && !loading ? (
           <div style={{ textAlign: 'center', marginTop: 60, padding: 20 }}>
             <IonText color="medium">
-              <h2>🤷‍♂️ Belum ada grup</h2>
+              <h2>🤷‍♂️ Belum ada obrolan</h2>
               <p>Admin akan menambahkan kamu ke grup. Sabar ya!</p>
             </IonText>
           </div>
         ) : (
           <IonList>
-            {groups.map((group) => (
-              <IonItem
-                key={group.id}
-                button
-                onClick={() => history.push(`/chat/${group.id}`)}
-              >
-                <IonAvatar slot="start">
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%',
-                    background: group.type === 'broadcast' ? '#4CAF50' : '#1976d2',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 20,
-                  }}>
-                    {group.type === 'broadcast' ? '📢' : '💬'}
-                  </div>
-                </IonAvatar>
-                <IonLabel>
-                  <h2>{group.name}</h2>
-                  <p>{lastMessages[group.id] || 'Belum ada pesan'}</p>
-                </IonLabel>
-                {group.type === 'broadcast' && (
-                  <IonBadge color="success" slot="end">Broadcast</IonBadge>
-                )}
-              </IonItem>
-            ))}
+            {groups.map((group) => {
+              const partner = group.type === 'dm' ? getDMPartner(group) : null;
+              const subtitle = group.type === 'dm'
+                ? (partner?.email || 'Personal')
+                : group.type === 'broadcast'
+                  ? `${group.members.length} anggota · Broadcast`
+                  : `${group.members.length} anggota · Diskusi`;
+
+              return (
+                <IonItem
+                  key={group.id}
+                  button
+                  onClick={() => history.push(`/chat/${group.id}`)}
+                >
+                  {renderAvatar(group)}
+                  <IonLabel>
+                    <h2>{group.type === 'dm' ? (partner?.displayName || partner?.email || 'Chat Personal') : group.name}</h2>
+                    <p>{lastMessages[group.id] || 'Belum ada pesan'}</p>
+                  </IonLabel>
+                  {renderBadge(group)}
+                </IonItem>
+              );
+            })}
           </IonList>
         )}
       </IonContent>

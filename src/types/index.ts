@@ -22,7 +22,8 @@ export interface Group {
   id: string;
   name: string;
   members: string[];
-  type: 'broadcast' | 'discussion';
+  type: 'broadcast' | 'discussion' | 'dm';
+  dmWith?: string; // UID lawan bicara (kalo DM)
   createdBy: string;
   createdAt: number;
 }
