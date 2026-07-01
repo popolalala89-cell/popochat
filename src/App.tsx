@@ -52,18 +52,18 @@ function AppRoutes() {
 
   return (
     <IonReactRouter>
-      {/* Public routes */}
-      <Route exact path="/login">
-        {currentUser ? <Redirect to="/chats" /> : <LoginPage />}
-      </Route>
-      <Route exact path="/register">
-        {currentUser ? <Redirect to="/chats" /> : <RegisterPage />}
-      </Route>
+      {/* Jika sudah login, redirect dari /login dan /register */}
+      <Route exact path="/login" render={() =>
+        currentUser ? <Redirect to="/chats" /> : <LoginPage />
+      } />
+      <Route exact path="/register" render={() =>
+        currentUser ? <Redirect to="/chats" /> : <RegisterPage />
+      } />
 
-      {/* Chat detail — no tabs (but still guarded) */}
+      {/* Chat detail — tanpa tab bar */}
       <ProtectedRoute exact path="/chat/:id" component={ChatDetailPage} />
 
-      {/* Tabbed routes (guarded) */}
+      {/* Halaman dengan tab bar */}
       <IonTabs>
         <IonRouterOutlet>
           <ProtectedRoute exact path="/chats" component={ChatListPage} />
