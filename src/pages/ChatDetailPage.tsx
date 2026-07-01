@@ -15,7 +15,7 @@ import {
   IonLoading,
 } from '@ionic/react';
 import { sendOutline } from 'ionicons/icons';
-import { collection, query, where, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, doc, updateDoc, getDoc, setDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { ChatMessage, Group, UserData } from '../types';
@@ -120,6 +120,17 @@ const ChatDetailPage: React.FC = () => {
 
     try {
       await addDoc(collection(db, 'messages'), msg);
+
+      // Update lastMessage di grup (biar chat list real-time)
+      await updateDoc(doc(db, 'groups', id), {
+        lastMessage: {
+          content: msg.content.substring(0, 80),
+          senderName: msg.senderName,
+          timestamp: msg.timestamp,
+        },
+        lastMessageAt: msg.timestamp,
+      });
+
       playSendSound();
     } catch (err) {
       console.error('Gagal kirim pesan:', err);

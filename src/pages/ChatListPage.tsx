@@ -27,7 +27,6 @@ const ChatListPage: React.FC = () => {
   const history = useHistory();
   const [groups, setGroups] = useState<Group[]>([]);
   const [allUsers, setAllUsers] = useState<Record<string, UserData>>({});
-  const [lastMessages, setLastMessages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,31 +53,17 @@ const ChatListPage: React.FC = () => {
         grpList.push({ id: doc.id, ...doc.data() } as Group);
       });
 
-      // Urut: DM duluan, baru grup, lalu broadcast
-      const typeOrder = { dm: 0, discussion: 1, broadcast: 2 };
-      grpList.sort((a, b) => (typeOrder[a.type] ?? 9) - (typeOrder[b.type] ?? 9));
-
-      setGroups(grpList);
-
-      // Ambil pesan terakhir tiap grup
-      grpList.forEach((g) => {
-        const msgQuery = query(
-          collection(db, 'messages'),
-          where('groupId', '==', g.id),
-          orderBy('timestamp', 'desc'),
-          limit(1)
-        );
-        onSnapshot(msgQuery, (msgSnap) => {
-          if (!msgSnap.empty) {
-            const msg = msgSnap.docs[0].data() as ChatMessage;
-            setLastMessages((prev) => ({
-              ...prev,
-              [g.id]: msg.content.substring(0, 50) + (msg.content.length > 50 ? '...' : ''),
-            }));
-          }
-        });
+      // Urut: yang paling baru chat-nya di atas
+      grpList.sort((a, b) => {
+        const aTime = (a as any).lastMessageAt || a.createdAt || 0;
+        const bTime = (b as any).lastMessageAt || b.createdAt || 0;
+        return bTime - aTime;
       });
 
+      setGroups(grpList);
+      setLoading(false);
+    }, (err) => {
+      console.error('Gagal load groups:', err);
       setLoading(false);
     });
 
@@ -214,7 +199,7 @@ const ChatListPage: React.FC = () => {
                   {renderAvatar(group)}
                   <IonLabel>
                     <h2>{group.type === 'dm' ? (partner?.displayName || partner?.email || 'Chat Personal') : group.name}</h2>
-                    <p>{lastMessages[group.id] || 'Belum ada pesan'}</p>
+                    <p>{(group as any).lastMessage?.content || 'Belum ada pesan'}</p>
                   </IonLabel>
                   {renderBadge(group)}
                 </IonItem>
