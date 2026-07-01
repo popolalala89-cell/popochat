@@ -116,9 +116,10 @@ const ChatDetailPage: React.FC = () => {
       isBroadcast: group.type === 'broadcast',
     };
 
+    setText('');
+
     try {
       await addDoc(collection(db, 'messages'), msg);
-      setText('');
       playSendSound();
     } catch (err) {
       console.error('Gagal kirim pesan:', err);
