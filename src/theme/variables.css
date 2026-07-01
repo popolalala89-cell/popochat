@@ -1,0 +1,56 @@
+/* Ionic CSS Variables */
+:root {
+  --ion-color-primary: #1976d2;
+  --ion-color-primary-rgb: 25, 118, 210;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-shade: #1565c0;
+  --ion-color-primary-tint: #1e88e5;
+
+  --ion-color-secondary: #4CAF50;
+  --ion-color-secondary-rgb: 76, 175, 80;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-shade: #43a047;
+  --ion-color-secondary-tint: #66bb6a;
+
+  --ion-color-tertiary: #FF9800;
+  --ion-color-tertiary-rgb: 255, 152, 0;
+  --ion-color-tertiary-contrast: #000000;
+
+  --ion-color-success: #4CAF50;
+  --ion-color-warning: #FF9800;
+  --ion-color-danger: #f44336;
+  --ion-color-medium: #9e9e9e;
+  --ion-color-light: #f5f5f5;
+
+  --ion-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Tema Santai */
+.theme-santai {
+  --ion-color-primary: #7E57C2;
+  --ion-color-primary-shade: #6a48a7;
+  --ion-color-primary-tint: #9575cd;
+  --ion-background-color: #fff8f0;
+}
+
+/* Dark Mode */
+.theme-dark {
+  --ion-color-primary: #64B5F6;
+  --ion-color-primary-shade: #5aa1dc;
+  --ion-color-primary-tint: #73c2f7;
+  --ion-background-color: #121212;
+  --ion-text-color: #ffffff;
+  --ion-item-background: #1e1e1e;
+  --ion-tab-bar-background: #1e1e1e;
+  --ion-card-background: #1e1e1e;
+}
+
+/* Fun touch: friendly error messages */
+.error-fun {
+  font-size: 14px;
+  color: var(--ion-color-danger);
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(244, 67, 54, 0.1);
+  text-align: center;
+}

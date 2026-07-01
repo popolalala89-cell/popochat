@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Chat Internal</string>
+    <string name="title_activity_main">Chat Internal</string>
+    <string name="package_name">com.launchpage.chatapp</string>
+    <string name="custom_url_scheme">com.launchpage.chatapp</string>
+</resources>
