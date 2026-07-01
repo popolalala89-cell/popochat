@@ -15,23 +15,11 @@ import {
   IonLoading,
 } from '@ionic/react';
 import { sendOutline, happyOutline, thumbsUpOutline, flameOutline, cafeOutline, rocketOutline } from 'ionicons/icons';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  doc,
-  getDoc,
-  setDoc,
-  increment,
-  serverTimestamp,
-} from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
-import { ChatMessage, Group } from '../types';
-import { playSendSound } from '../utils/sounds';
+import { ChatMessage, Group, UserData } from '../types';
+import { playSendSound, playNotificationSound } from '../utils/sounds';
 
 const EMOJI_REACTIONS = ['👍', '😂', '🔥', '☕', '🚀'];
 
@@ -40,9 +28,35 @@ const ChatDetailPage: React.FC = () => {
   const { currentUser, userData } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [group, setGroup] = useState<Group | null>(null);
+  const [allUsers, setAllUsers] = useState<Record<string, UserData>>({});
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
   const contentRef = useRef<any>(null);
+  const prevMsgCount = useRef(0);
+  const isFirstLoad = useRef(true);
+
+  // Load semua user (buat cari nama lawan DM)
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'users'), (snap) => {
+      const map: Record<string, UserData> = {};
+      snap.forEach((d) => {
+        map[d.id] = { uid: d.id, ...d.data() } as UserData;
+      });
+      setAllUsers(map);
+    });
+    return () => unsub();
+  }, []);
+
+  // Nama judul chat: untuk DM tampilkan nama lawan bicara
+  function getChatTitle(): string {
+    if (!group) return 'Chat';
+    if (group.type === 'dm' && currentUser) {
+      const partnerUid = group.members.find((uid) => uid !== currentUser.uid);
+      const partner = partnerUid ? allUsers[partnerUid] : null;
+      return partner?.displayName || partner?.email || group.name || 'Chat Personal';
+    }
+    return group.name || 'Chat';
+  }
 
   // Load grup info
   useEffect(() => {
@@ -67,6 +81,17 @@ const ChatDetailPage: React.FC = () => {
       });
       setMessages(msgs);
       setLoading(false);
+
+      // Deteksi pesan baru dari orang lain → mainkan notif
+      if (!isFirstLoad.current && msgs.length > prevMsgCount.current) {
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg && lastMsg.senderId !== currentUser?.uid) {
+          const soundName = userData?.preferences?.notificationSound || 'default';
+          playNotificationSound(soundName);
+        }
+      }
+      isFirstLoad.current = false;
+      prevMsgCount.current = msgs.length;
 
       // Auto-scroll ke bawah
       setTimeout(() => {
@@ -133,7 +158,7 @@ const ChatDetailPage: React.FC = () => {
           <IonButtons slot="start">
             <IonBackButton defaultHref="/chats" />
           </IonButtons>
-          <IonTitle>{group?.name || 'Chat'}</IonTitle>
+          <IonTitle>{getChatTitle()}</IonTitle>
         </IonToolbar>
       </IonHeader>
 
