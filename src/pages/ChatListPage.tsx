@@ -16,7 +16,7 @@ import {
   IonBadge,
   IonLoading,
 } from '@ionic/react';
-import { chatbubblesOutline, addOutline, logOutOutline, megaphoneOutline } from 'ionicons/icons';
+import { chatbubblesOutline, addOutline, logOutOutline, megaphoneOutline, chatboxEllipsesOutline } from 'ionicons/icons';
 import { collection, query, where, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
@@ -222,6 +222,13 @@ const ChatListPage: React.FC = () => {
             })}
           </IonList>
         )}
+
+        {/* Tombol + untuk chat baru */}
+        <IonFab vertical="bottom" horizontal="end" slot="fixed">
+          <IonFabButton onClick={() => history.push('/new-chat')}>
+            <IonIcon icon={chatboxEllipsesOutline} />
+          </IonFabButton>
+        </IonFab>
       </IonContent>
     </IonPage>
   );

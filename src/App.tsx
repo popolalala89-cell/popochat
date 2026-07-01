@@ -32,6 +32,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChatListPage from './pages/ChatListPage';
 import ChatDetailPage from './pages/ChatDetailPage';
+import ChatNewPage from './pages/NewChatPage';
 import BroadcastPage from './pages/BroadcastPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
@@ -63,6 +64,9 @@ function AppRoutes() {
 
         {/* Chat detail — tanpa tab bar */}
         <ProtectedRoute exact path="/chat/:id" component={ChatDetailPage} />
+
+        {/* New chat — tanpa tab bar */}
+        <ProtectedRoute exact path="/new-chat" component={ChatNewPage} />
 
         {/* Halaman dengan tab bar */}
         <Route path="/" render={() => (

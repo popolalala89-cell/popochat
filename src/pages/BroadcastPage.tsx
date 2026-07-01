@@ -26,13 +26,11 @@ import {
   where,
   onSnapshot,
   addDoc,
-  getDocs,
-  setDoc,
-  doc,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { Group, UserData } from '../types';
+import { getOrCreateDM } from '../utils/dm';
 import Confetti from '../components/Confetti';
 
 const TEMPLATE_FORMAL = 'Kepada seluruh rekan, kami informasikan bahwa...';
@@ -77,33 +75,6 @@ const BroadcastPage: React.FC = () => {
     });
     return () => unsub();
   }, []);
-
-  async function getOrCreateDM(targetUid: string): Promise<string | null> {
-    if (!userData) return null;
-    // Cari DM group yang udah ada
-    const q = query(
-      collection(db, 'groups'),
-      where('dmWith', '==', targetUid)
-    );
-    const snap = await getDocs(q);
-    const existing = snap.docs.find(
-      (d) => (d.data() as any).type === 'dm' && d.data().members?.includes(userData.uid)
-    );
-    if (existing) return existing.id;
-
-    // Buat DM group baru
-    const targetUser = allUsers.find((u) => u.uid === targetUid);
-    const dmName = targetUser?.displayName || targetUser?.email || 'User';
-    const newGroupRef = await addDoc(collection(db, 'groups'), {
-      name: dmName,
-      members: [userData.uid, targetUid],
-      type: 'dm',
-      dmWith: targetUid,
-      createdBy: userData.uid,
-      createdAt: Date.now(),
-    });
-    return newGroupRef.id;
-  }
 
   function toggleGroup(groupId: string) {
     setSelectedGroups((prev) =>
@@ -155,14 +126,19 @@ const BroadcastPage: React.FC = () => {
         );
         await Promise.all(promises);
       } else {
-        // Broadcast personal — buat/ambil DM group dulu, lalu kirim
-        const promises = selectedUsers.map(async (targetUid) => {
-          const dmGroupId = await getOrCreateDM(targetUid);
+        // Broadcast personal — pakai shared getOrCreateDM
+        const targetUsers = allUsers.filter((u) => selectedUsers.includes(u.uid));
+        const promises = targetUsers.map(async (targetUser) => {
+          const dmGroupId = await getOrCreateDM(
+            userData!.uid,
+            targetUser.uid,
+            targetUser.displayName || targetUser.email || 'User',
+          );
           if (!dmGroupId) return;
           await addDoc(collection(db, 'messages'), {
             groupId: dmGroupId,
-            senderId: userData.uid,
-            senderName: userData.displayName,
+            senderId: userData!.uid,
+            senderName: userData!.displayName,
             type: 'text',
             content: message.trim(),
             timestamp: Date.now(),
