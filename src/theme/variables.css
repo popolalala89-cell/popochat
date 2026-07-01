@@ -80,3 +80,13 @@ ion-tab-bar {
   background: rgba(244, 67, 54, 0.1);
   text-align: center;
 }
+
+/* Fix tombol kirim — override opacity Ionic biar reaktif */
+.send-btn-active {
+  opacity: 1 !important;
+  --opacity: 1 !important;
+  pointer-events: auto !important;
+}
+.send-btn-disabled {
+  opacity: 0.5 !important;
+}

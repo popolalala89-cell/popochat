@@ -259,7 +259,7 @@ const ChatDetailPage: React.FC = () => {
       }}>
         <IonInput
           value={text}
-          onIonChange={(e) => setText(e.detail.value!)}
+          onIonInput={(e: any) => setText(e.detail.value || '')}
           placeholder="Ketik pesan..."
           style={{
             background: '#f5f5f5',
@@ -277,6 +277,7 @@ const ChatDetailPage: React.FC = () => {
         <IonButton
           onClick={sendMessage}
           disabled={!text.trim()}
+          className={text.trim() ? 'send-btn-active' : 'send-btn-disabled'}
           style={{ borderRadius: '50%', width: 44, height: 44, '--padding-start': 0, '--padding-end': 0 }}
         >
           <IonIcon icon={sendOutline} />
