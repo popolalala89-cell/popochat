@@ -40,7 +40,7 @@ import { useFCM } from './hooks/useFCM';
 
 function AppRoutes() {
   useFCM();
-  const { currentUser, loading } = useAuth();
+  const { currentUser, userData, loading } = useAuth();
 
   if (loading) {
     return (
@@ -84,10 +84,12 @@ function AppRoutes() {
                 <IonIcon icon={megaphone} />
                 <IonLabel>Broadcast</IonLabel>
               </IonTabButton>
+              {userData?.role === 'admin' && (
               <IonTabButton tab="admin" href="/admin">
                 <IonIcon icon={settings} />
                 <IonLabel>Admin</IonLabel>
               </IonTabButton>
+              )}
               <IonTabButton tab="profile" href="/profile">
                 <IonIcon icon={person} />
                 <IonLabel>Profil</IonLabel>

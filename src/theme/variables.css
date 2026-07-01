@@ -45,6 +45,32 @@
   --ion-card-background: #1e1e1e;
 }
 
+/* ✅ Safe Area — biar konten gak nembus status bar / notch HP */
+:root {
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+ion-content {
+  --padding-top: var(--safe-area-top);
+}
+
+/* IonPage + konten utama — padding atas untuk notch */
+.ion-page {
+  padding-top: var(--safe-area-top);
+}
+
+/* Tab bar — biar gak ketutupan gesture bar HP */
+ion-tab-bar {
+  padding-bottom: var(--safe-area-bottom);
+  height: calc(56px + var(--safe-area-bottom));
+}
+
+/* Halaman login/register — biar judulnya gak kehalangan status bar */
+.login-header {
+  padding-top: calc(16px + var(--safe-area-top));
+}
+
 /* Fun touch: friendly error messages */
 .error-fun {
   font-size: 14px;

@@ -45,6 +45,9 @@ const AdminPage: React.FC = () => {
   const [manageGroup, setManageGroup] = useState<Group | null>(null);
 
   useEffect(() => {
+    // Timeout 5 detik — biar gak loading forever kalo snapshot error
+    const timeoutId = setTimeout(() => setLoading(false), 5000);
+
     // Ambil semua users
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
       const userList: UserData[] = [];
@@ -57,10 +60,11 @@ const AdminPage: React.FC = () => {
       const grpList: Group[] = [];
       snap.forEach((d) => grpList.push({ id: d.id, ...d.data() } as Group));
       setGroups(grpList);
+      clearTimeout(timeoutId);
       setLoading(false);
     });
 
-    return () => { unsubUsers(); unsubGroups(); };
+    return () => { clearTimeout(timeoutId); unsubUsers(); unsubGroups(); };
   }, []);
 
   async function createGroup() {

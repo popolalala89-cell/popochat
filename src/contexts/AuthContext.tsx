@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
   User,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
@@ -17,6 +18,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
 
@@ -62,17 +64,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
+    let cancelled = false;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        const data = await fetchOrCreateUserDoc(user);
-        setUserData(data);
+        try {
+          const data = await fetchOrCreateUserDoc(user);
+          if (!cancelled) setUserData(data);
+        } catch (err) {
+          console.error('Gagal fetch user doc:', err);
+          // Tetap lanjut walau error — biar gak loading selamanya
+          if (!cancelled) setUserData(null);
+        }
       } else {
         setUserData(null);
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     });
-    return unsubscribe;
+    return () => { cancelled = true; unsubscribe(); };
   }, []);
 
   async function refreshUserData() {
@@ -109,10 +118,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  async function resetPassword(email: string) {
+    await sendPasswordResetEmail(auth, email);
+  }
+
   async function logout() {
     await signOut(auth);
   }
 
-  const value = { currentUser, userData, loading, login, register, logout, refreshUserData };
+  const value = { currentUser, userData, loading, login, register, logout, resetPassword, refreshUserData };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
