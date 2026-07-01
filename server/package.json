@@ -1,0 +1,13 @@
+{
+  "name": "popochat-fcm-server",
+  "version": "1.0.0",
+  "description": "FCM Notification Server untuk Popochat",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "dotenv": "^16.4.7"
+  }
+}
