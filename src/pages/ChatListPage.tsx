@@ -130,6 +130,13 @@ const ChatListPage: React.FC = () => {
   }
 
   function renderBadge(group: Group) {
+    const unread = (group.unreadCount?.[userData?.uid || ''] || 0);
+
+    // Prioritaskan badge unread merah
+    if (unread > 0) {
+      return <IonBadge color="danger" slot="end">{unread > 99 ? '99+' : unread}</IonBadge>;
+    }
+
     if (group.type === 'broadcast') {
       return <IonBadge color="success" slot="end">Broadcast</IonBadge>;
     }
@@ -198,7 +205,9 @@ const ChatListPage: React.FC = () => {
                 >
                   {renderAvatar(group)}
                   <IonLabel>
-                    <h2>{group.type === 'dm' ? (partner?.displayName || partner?.email || 'Chat Personal') : group.name}</h2>
+                    <h2 style={{ fontWeight: (group.unreadCount?.[userData?.uid || ''] || 0) > 0 ? 700 : 400 }}>
+                      {group.type === 'dm' ? (partner?.displayName || partner?.email || 'Chat Personal') : group.name}
+                    </h2>
                     <p>{(group as any).lastMessage?.content || 'Belum ada pesan'}</p>
                   </IonLabel>
                   {renderBadge(group)}

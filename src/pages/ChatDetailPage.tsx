@@ -66,6 +66,16 @@ const ChatDetailPage: React.FC = () => {
     return () => unsub();
   }, [id]);
 
+  // Mark as read saat masuk chat (loading false = pesan udah termuat)
+  useEffect(() => {
+    if (!currentUser || loading) return;
+    const groupRef = doc(db, 'groups', id);
+    updateDoc(groupRef, {
+      [`lastRead.${currentUser.uid}`]: Date.now(),
+      [`unreadCount.${currentUser.uid}`]: 0,
+    }).catch(() => {});
+  }, [id, currentUser, loading]);
+
   // Load pesan real-time
   useEffect(() => {
     const q = query(
@@ -130,6 +140,16 @@ const ChatDetailPage: React.FC = () => {
         },
         lastMessageAt: msg.timestamp,
       });
+
+      // Increment unread count untuk member lain
+      const otherMembers = group.members.filter(uid => uid !== currentUser.uid);
+      if (otherMembers.length > 0) {
+        const unreadUpdates: Record<string, any> = {};
+        otherMembers.forEach(uid => {
+          unreadUpdates[`unreadCount.${uid}`] = increment(1);
+        });
+        await updateDoc(doc(db, 'groups', id), unreadUpdates);
+      }
 
       playSendSound();
     } catch (err) {

@@ -26,6 +26,14 @@ export interface Group {
   dmWith?: string; // UID lawan bicara (kalo DM)
   createdBy: string;
   createdAt: number;
+  lastMessage?: {
+    content: string;
+    senderName: string;
+    timestamp: number;
+  };
+  lastMessageAt?: number;
+  lastRead?: Record<string, number>; // uid → timestamp terakhir user ini read
+  unreadCount?: Record<string, number>; // uid → jumlah pesan belum dibaca
 }
 
 export interface ChatMessage {
