@@ -11,3 +11,4 @@ local.properties
 .DS_Store
 *.log
 server/service-account.json
+server/server.pid
