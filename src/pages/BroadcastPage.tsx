@@ -23,6 +23,7 @@ import { collection, query, where, onSnapshot, addDoc } from 'firebase/firestore
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { Group } from '../types';
+import Confetti from '../components/Confetti';
 
 const TEMPLATE_FORMAL = 'Kepada seluruh rekan, kami informasikan bahwa...';
 const TEMPLATE_SANTAI = 'Hai semuanya! Mau ngasih tau nih...';
@@ -37,6 +38,7 @@ const BroadcastPage: React.FC = () => {
   const [template, setTemplate] = useState<'formal' | 'santai' | 'lucu'>('santai');
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     if (!userData) return;
@@ -89,6 +91,7 @@ const BroadcastPage: React.FC = () => {
 
       await Promise.all(broadcastPromises);
       setSuccess(true);
+      setShowConfetti(true);
       setMessage('');
       setSelectedGroups([]);
 
@@ -123,6 +126,7 @@ const BroadcastPage: React.FC = () => {
 
   return (
     <IonPage>
+      <Confetti active={showConfetti} />
       <IonHeader>
         <IonToolbar>
           <IonButtons slot="start"><IonBackButton defaultHref="/chats" /></IonButtons>

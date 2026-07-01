@@ -6,7 +6,7 @@ import {
   signOut,
   User,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { UserData } from '../types';
 
@@ -17,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,14 +33,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  async function fetchOrCreateUserDoc(user: User) {
+    const ref = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+      return snap.data() as UserData;
+    }
+    // Auto-create jika belum ada (misal user dibuat via Firebase Console)
+    const newUser: UserData = {
+      uid: user.uid,
+      email: user.email || '',
+      displayName: user.displayName || user.email?.split('@')[0] || 'User',
+      avatarUrl: '',
+      statusMood: 'Semangat 45 🚀',
+      tokenFCM: '',
+      role: 'member',
+      preferences: {
+        theme: 'default',
+        wallpaper: 'default',
+        notificationSound: 'default',
+      },
+      badges: [],
+      points: 0,
+      createdAt: Date.now(),
+    };
+    await setDoc(ref, newUser);
+    return newUser;
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
-        const docSnap = await getDoc(doc(db, 'users', user.uid));
-        if (docSnap.exists()) {
-          setUserData(docSnap.data() as UserData);
-        }
+        const data = await fetchOrCreateUserDoc(user);
+        setUserData(data);
       } else {
         setUserData(null);
       }
@@ -47,6 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return unsubscribe;
   }, []);
+
+  async function refreshUserData() {
+    if (!currentUser) return;
+    const snap = await getDoc(doc(db, 'users', currentUser.uid));
+    if (snap.exists()) {
+      setUserData(snap.data() as UserData);
+    }
+  }
 
   async function login(email: string, password: string) {
     await signInWithEmailAndPassword(auth, email, password);
@@ -78,6 +113,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   }
 
-  const value = { currentUser, userData, loading, login, register, logout };
+  const value = { currentUser, userData, loading, login, register, logout, refreshUserData };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

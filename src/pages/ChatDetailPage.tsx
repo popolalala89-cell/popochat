@@ -31,6 +31,7 @@ import {
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { ChatMessage, Group } from '../types';
+import { playSendSound } from '../utils/sounds';
 
 const EMOJI_REACTIONS = ['👍', '😂', '🔥', '☕', '🚀'];
 
@@ -93,6 +94,7 @@ const ChatDetailPage: React.FC = () => {
     try {
       await addDoc(collection(db, 'messages'), msg);
       setText('');
+      playSendSound();
     } catch (err) {
       console.error('Gagal kirim pesan:', err);
     }

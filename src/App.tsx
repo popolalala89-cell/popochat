@@ -10,7 +10,7 @@ import {
   IonTabs,
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
-import { chatbubbles, person, megaphone } from 'ionicons/icons';
+import { chatbubbles, person, megaphone, settings } from 'ionicons/icons';
 
 /* Core CSS required for Ionic components to work properly */
 import '@ionic/react/css/core.css';
@@ -34,8 +34,13 @@ import ChatListPage from './pages/ChatListPage';
 import ChatDetailPage from './pages/ChatDetailPage';
 import BroadcastPage from './pages/BroadcastPage';
 import ProfilePage from './pages/ProfilePage';
+import AdminPage from './pages/AdminPage';
+import { useFCM } from './hooks/useFCM';
 
-const App: React.FC = () => (
+const App: React.FC = () => {
+  useFCM();
+
+  return (
   <IonApp>
     <IonReactRouter>
       <AuthProvider>
@@ -52,6 +57,7 @@ const App: React.FC = () => (
             <Route exact path="/chats" component={ChatListPage} />
             <Route exact path="/broadcast" component={BroadcastPage} />
             <Route exact path="/profile" component={ProfilePage} />
+            <Route exact path="/admin" component={AdminPage} />
             <Route exact path="/" component={ChatListPage} />
           </IonRouterOutlet>
 
@@ -64,6 +70,10 @@ const App: React.FC = () => (
               <IonIcon icon={megaphone} />
               <IonLabel>Broadcast</IonLabel>
             </IonTabButton>
+            <IonTabButton tab="admin" href="/admin">
+              <IonIcon icon={settings} />
+              <IonLabel>Admin</IonLabel>
+            </IonTabButton>
             <IonTabButton tab="profile" href="/profile">
               <IonIcon icon={person} />
               <IonLabel>Profil</IonLabel>
@@ -73,6 +83,7 @@ const App: React.FC = () => (
       </AuthProvider>
     </IonReactRouter>
   </IonApp>
-);
+  );
+};
 
 export default App;
