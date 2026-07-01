@@ -8,13 +8,13 @@ import {
   IonButtons,
   IonBackButton,
   IonTitle,
-  IonInput,
+  IonTextarea,
   IonButton,
   IonIcon,
   IonText,
   IonLoading,
 } from '@ionic/react';
-import { sendOutline, happyOutline, thumbsUpOutline, flameOutline, cafeOutline, rocketOutline } from 'ionicons/icons';
+import { sendOutline } from 'ionicons/icons';
 import { collection, query, where, orderBy, onSnapshot, addDoc, doc, getDoc, setDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
@@ -257,21 +257,17 @@ const ChatDetailPage: React.FC = () => {
         alignItems: 'center',
         gap: 8,
       }}>
-        <IonInput
+        <IonTextarea
           value={text}
           onIonInput={(e: any) => setText(e.detail.value || '')}
           placeholder="Ketik pesan..."
+          rows={1}
+          autoGrow={true}
           style={{
             background: '#f5f5f5',
             borderRadius: 24,
-            padding: '0 16px',
+            padding: '10px 16px',
             flex: 1,
-          }}
-          onKeyDown={(e: any) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              sendMessage();
-            }
           }}
         />
         <IonButton
