@@ -4,15 +4,14 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getMessaging } from 'firebase/messaging';
 
-// TODO: Ganti dengan config Firebase lo sendiri
-// Ambil dari Firebase Console → Project Settings → Web App
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_PROJECT.firebaseapp.com',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_PROJECT.appspot.com',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID',
+  apiKey: 'AIzaSyCi8QI9OxLY5aaG2z1Okn0q6WWl2eNe2vg',
+  authDomain: 'popochat-1eaef.firebaseapp.com',
+  projectId: 'popochat-1eaef',
+  storageBucket: 'popochat-1eaef.firebasestorage.app',
+  messagingSenderId: '915145179377',
+  appId: '1:915145179377:web:08a1d1d730c6a38f806950',
+  measurementId: 'G-2ZT75GBNJM',
 };
 
 const app = initializeApp(firebaseConfig);
