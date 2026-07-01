@@ -221,7 +221,6 @@ console.log('');
 
 const unsubscribe = db.collection('messages')
   .where('isBroadcast', '==', true)
-  .orderBy('timestamp', 'asc')
   .onSnapshot(async (snapshot) => {
     for (const change of snapshot.docChanges()) {
       if (change.type !== 'added') continue;
@@ -257,5 +256,8 @@ process.on('SIGTERM', () => {
 });
 
 // ─── Health Check (via PID file) ───────────────────────────────────
-// Create a PID file for monitoring
-fs.writeFileSync('/tmp/popochat-fcm.pid', String(process.pid));
+try {
+  fs.writeFileSync(path.join(__dirname, 'server.pid'), String(process.pid));
+} catch (e) {
+  // Gagal nulis PID file — gapapa
+}
