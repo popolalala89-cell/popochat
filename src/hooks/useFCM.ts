@@ -2,18 +2,29 @@ import { useEffect } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
-import { PushNotifications } from '@capacitor/push-notifications';
+
+// Deteksi apakah dijalankan di Capacitor native atau browser biasa
+function isNative(): boolean {
+  return !!(window as any).Capacitor?.isNative;
+}
 
 export function useFCM() {
   const { currentUser, userData } = useAuth();
 
   useEffect(() => {
     if (!currentUser) return;
+    // Skip FCM jika bukan native Capacitor (misal: browser dev)
+    if (!isNative()) {
+      console.log('[FCM] Skipped: running in browser dev mode');
+      return;
+    }
 
     let cancelled = false;
 
     async function registerPush() {
       try {
+        const { PushNotifications } = await import('@capacitor/push-notifications');
+
         // Request permission
         let permStatus = await PushNotifications.checkPermissions();
         if (permStatus.receive === 'prompt') {
@@ -50,7 +61,6 @@ export function useFCM() {
 
     return () => {
       cancelled = true;
-      PushNotifications.removeAllListeners();
     };
   }, [currentUser?.uid]);
 }

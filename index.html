@@ -9,6 +9,24 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Mock Capacitor untuk mencegah bridge error di browser -->
+    <script>
+      window.__CAPACITOR_MOCK__ = true;
+      window.Capacitor = {
+        isNative: false,
+        isNativePlatform: function() { return false; },
+        getPlatform: function() { return 'web'; },
+        isPluginAvailable: function() { return false; },
+        registerPlugin: function() { return {}; },
+        addListener: function() {},
+        removeAllListeners: function() {},
+        convertFileSrc: function(p) { return p; },
+      };
+      window.CapacitorPlugins = {};
+      // Cegah Capacitor bridge mencoba native bridge
+      if (!window.webkit) window.webkit = {};
+      if (!window.webkit.messageHandlers) window.webkit.messageHandlers = {};
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

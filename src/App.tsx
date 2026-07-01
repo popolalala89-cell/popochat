@@ -1,5 +1,5 @@
 import React from 'react';
-import { Route, Redirect } from 'react-router-dom';
+import { Route, Redirect, Switch } from 'react-router-dom';
 import {
   IonApp,
   IonRouterOutlet,
@@ -52,46 +52,50 @@ function AppRoutes() {
 
   return (
     <IonReactRouter>
-      {/* Jika sudah login, redirect dari /login dan /register */}
-      <Route exact path="/login" render={() =>
-        currentUser ? <Redirect to="/chats" /> : <LoginPage />
-      } />
-      <Route exact path="/register" render={() =>
-        currentUser ? <Redirect to="/chats" /> : <RegisterPage />
-      } />
+      <Switch>
+        {/* Jika sudah login, redirect dari /login dan /register */}
+        <Route exact path="/login" render={() =>
+          currentUser ? <Redirect to="/chats" /> : <LoginPage />
+        } />
+        <Route exact path="/register" render={() =>
+          currentUser ? <Redirect to="/chats" /> : <RegisterPage />
+        } />
 
-      {/* Chat detail — tanpa tab bar */}
-      <ProtectedRoute exact path="/chat/:id" component={ChatDetailPage} />
+        {/* Chat detail — tanpa tab bar */}
+        <ProtectedRoute exact path="/chat/:id" component={ChatDetailPage} />
 
-      {/* Halaman dengan tab bar */}
-      <IonTabs>
-        <IonRouterOutlet>
-          <ProtectedRoute exact path="/chats" component={ChatListPage} />
-          <ProtectedRoute exact path="/broadcast" component={BroadcastPage} />
-          <ProtectedRoute exact path="/profile" component={ProfilePage} />
-          <ProtectedRoute exact path="/admin" component={AdminPage} />
-          <ProtectedRoute exact path="/" component={ChatListPage} />
-        </IonRouterOutlet>
+        {/* Halaman dengan tab bar */}
+        <Route path="/" render={() => (
+          <IonTabs>
+            <IonRouterOutlet>
+              <ProtectedRoute exact path="/chats" component={ChatListPage} />
+              <ProtectedRoute exact path="/broadcast" component={BroadcastPage} />
+              <ProtectedRoute exact path="/profile" component={ProfilePage} />
+              <ProtectedRoute exact path="/admin" component={AdminPage} />
+              <ProtectedRoute exact path="/" component={ChatListPage} />
+            </IonRouterOutlet>
 
-        <IonTabBar slot="bottom">
-          <IonTabButton tab="chats" href="/chats">
-            <IonIcon icon={chatbubbles} />
-            <IonLabel>Chat</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="broadcast" href="/broadcast">
-            <IonIcon icon={megaphone} />
-            <IonLabel>Broadcast</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="admin" href="/admin">
-            <IonIcon icon={settings} />
-            <IonLabel>Admin</IonLabel>
-          </IonTabButton>
-          <IonTabButton tab="profile" href="/profile">
-            <IonIcon icon={person} />
-            <IonLabel>Profil</IonLabel>
-          </IonTabButton>
-        </IonTabBar>
-      </IonTabs>
+            <IonTabBar slot="bottom">
+              <IonTabButton tab="chats" href="/chats">
+                <IonIcon icon={chatbubbles} />
+                <IonLabel>Chat</IonLabel>
+              </IonTabButton>
+              <IonTabButton tab="broadcast" href="/broadcast">
+                <IonIcon icon={megaphone} />
+                <IonLabel>Broadcast</IonLabel>
+              </IonTabButton>
+              <IonTabButton tab="admin" href="/admin">
+                <IonIcon icon={settings} />
+                <IonLabel>Admin</IonLabel>
+              </IonTabButton>
+              <IonTabButton tab="profile" href="/profile">
+                <IonIcon icon={person} />
+                <IonLabel>Profil</IonLabel>
+              </IonTabButton>
+            </IonTabBar>
+          </IonTabs>
+        )} />
+      </Switch>
     </IonReactRouter>
   );
 }
