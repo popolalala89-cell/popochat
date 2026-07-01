@@ -40,14 +40,16 @@ const LoginPage: React.FC = () => {
     setError('');
 
     // Baca value langsung dari DOM ref (lebih reliable dari state)
-    const emailVal = (await emailRef.current?.getInputElement()).then(
-      (el) => el.value
-    );
-    const passVal = (await passwordRef.current?.getInputElement()).then(
-      (el) => el.value
-    );
-    const finalEmail = (await emailVal) || email;
-    const finalPassword = (await passVal) || password;
+    let finalEmail = email;
+    let finalPassword = password;
+    try {
+      const emailEl = await emailRef.current?.getInputElement();
+      const passEl = await passwordRef.current?.getInputElement();
+      if (emailEl?.value) finalEmail = emailEl.value;
+      if (passEl?.value) finalPassword = passEl.value;
+    } catch (e) {
+      // Fallback ke state kalo ref gagal
+    }
 
     if (!finalEmail || !finalPassword) {
       setError('Isi email dan password dulu ya 😅');
