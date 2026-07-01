@@ -10,7 +10,6 @@ import {
   IonText,
   IonItem,
   IonLabel,
-  IonRouterLink,
 } from '@ionic/react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -85,7 +84,9 @@ const LoginPage: React.FC = () => {
               <IonText>
                 <p style={{ textAlign: 'center', marginTop: 16 }}>
                   Belum punya akun?{' '}
-                  <IonRouterLink routerLink="/register">Daftar</IonRouterLink>
+                  <a onClick={() => history.push('/register')} style={{ color: 'var(--ion-color-primary)', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Daftar
+                  </a>
                 </p>
               </IonText>
             </IonCardContent>
