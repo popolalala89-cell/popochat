@@ -10,7 +10,7 @@
  * Atau via environment variables:
  *   export FIREBASE_PROJECT_ID=popochat-1eaef
  *   export FIREBASE_CLIENT_EMAIL=xxx@xxx.iam.gserviceaccount.com
- *   export FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+ *   export FIREBASE_PRIVATE_KEY="[REDACTED PRIVATE KEY]\n"
  *   node index.js
  */
 
@@ -62,8 +62,6 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 
 // ─── Rate Limiter ──────────────────────────────────────────────────
-// FCM has a rate limit of ~600 messages/second per project
-// We throttle to be safe
 const RATE_LIMIT_PER_SEC = 400;
 let tokensThisSecond = 0;
 let lastReset = Date.now();
@@ -83,7 +81,6 @@ function checkRateLimit() {
 }
 
 // ─── Notifikasi Sudah Dikirim (tracking) ─────────────────────────
-// Disimpan di Firestore agar persisten walau server restart
 const NOTIFY_COLLECTION = '_fcm_sent';
 
 async function isAlreadyNotified(msgId) {
@@ -104,15 +101,28 @@ async function markNotified(msgId, stats) {
 async function sendFCM(token, sound, msg, group) {
   await checkRateLimit();
 
+  // Tentukan title & type notifikasi berdasarkan tipe grup
+  let title, notifType;
+  if (group.type === 'broadcast') {
+    title = `📢 ${msg.senderName || 'Broadcast'}`;
+    notifType = 'broadcast';
+  } else if (group.type === 'dm') {
+    title = msg.senderName || 'Pesan Personal';
+    notifType = 'dm';
+  } else {
+    title = `${msg.senderName || 'Seseorang'} (${group.name || 'Grup'})`;
+    notifType = 'discussion';
+  }
+
   const message = {
     token,
     notification: {
-      title: msg.senderName || 'Pesan Broadcast',
+      title,
       body: msg.content?.substring(0, 200) || 'Pesan baru',
     },
     android: {
       notification: {
-        channelId: 'pesan_massal',
+        channelId: 'pesan_baru',
         sound: sound || 'default',
         priority: 'high',
         visibility: 1,
@@ -122,7 +132,7 @@ async function sendFCM(token, sound, msg, group) {
     },
     data: {
       groupId: msg.groupId,
-      type: 'broadcast',
+      type: notifType,
       click_action: 'OPEN_CHAT',
     },
   };
@@ -130,8 +140,8 @@ async function sendFCM(token, sound, msg, group) {
   await messaging.send(message);
 }
 
-// ─── Handle Broadcast ──────────────────────────────────────────────
-async function handleBroadcast(msg, msgId) {
+// ─── Handle Semua Pesan Baru ─────────────────────────────────────
+async function handleNewMessage(msg, msgId) {
   try {
     const groupDoc = await db.collection('groups').doc(msg.groupId).get();
     if (!groupDoc.exists) {
@@ -141,8 +151,10 @@ async function handleBroadcast(msg, msgId) {
 
     const group = groupDoc.data();
     const memberIds = group.members || [];
-    console.log(`[FCM] 📢 Broadcast "${msg.content?.substring(0, 50)}..."`);
-    console.log(`[FCM]    Group: ${group.name} (${memberIds.length} members)`);
+    const preview = msg.content?.substring(0, 50) || '(gambar/stiker)';
+    const groupLabel = group.type === 'dm' ? 'DM' : group.name || 'Grup';
+    console.log(`[FCM] 💬 ${groupLabel} \"${preview}...\"`);
+    console.log(`[FCM]    Sender: ${msg.senderName || msg.senderId} (${memberIds.length} members)`);
 
     // Ambil token FCM semua anggota (kecuali pengirim)
     const tokenPromises = memberIds
@@ -167,7 +179,7 @@ async function handleBroadcast(msg, msgId) {
     const recipients = tokenResults.filter(Boolean);
 
     if (recipients.length === 0) {
-      console.log(`[FCM] ⚠️  No FCM tokens found for group members`);
+      console.log(`[FCM] ⚠️  No FCM tokens found — skip`);
       return;
     }
 
@@ -190,7 +202,6 @@ async function handleBroadcast(msg, msgId) {
       failed += batchFail;
 
       if (batchFail > 0) {
-        // Log yang gagal
         results.forEach((r, idx) => {
           if (r.status === 'rejected') {
             console.log(`[FCM]    ✗ ${batch[idx].uid}: ${r.reason?.message || r.reason}`);
@@ -204,23 +215,23 @@ async function handleBroadcast(msg, msgId) {
     // Simpan status notifikasi
     await markNotified(msgId, { total: recipients.length, success, failed });
 
-    console.log(`[FCM] ✅ Broadcast ${msgId} done: ${success} sent, ${failed} failed`);
+    console.log(`[FCM] ✅ Msg ${msgId} done: ${success} sent, ${failed} failed`);
   } catch (err) {
-    console.error(`[FCM] 🔴 Error handling broadcast ${msgId}:`, err);
+    console.error(`[FCM] 🔴 Error handling msg ${msgId}:`, err);
   }
 }
 
 // ─── Firestore Listener ────────────────────────────────────────────
+// Mendengarkan SEMUA pesan baru — broadcast, DM, diskusi grup
 console.log('');
 console.log('╔══════════════════════════════════════╗');
 console.log('║   Popochat FCM Notification Server   ║');
 console.log('╚══════════════════════════════════════╝');
 console.log('');
-console.log(`[FCM] Listening for broadcast messages...`);
+console.log(`[FCM] Listening for ALL new messages...`);
 console.log('');
 
 const unsubscribe = db.collection('messages')
-  .where('isBroadcast', '==', true)
   .onSnapshot(async (snapshot) => {
     for (const change of snapshot.docChanges()) {
       if (change.type !== 'added') continue;
@@ -232,7 +243,7 @@ const unsubscribe = db.collection('messages')
       const already = await isAlreadyNotified(msgId);
       if (already) continue;
 
-      await handleBroadcast(msg, msgId);
+      await handleNewMessage(msg, msgId);
     }
   }, (err) => {
     console.error('[FCM] 🔴 Firestore listener error:', err);
