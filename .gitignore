@@ -12,3 +12,5 @@ local.properties
 *.log
 server/service-account.json
 server/server.pid
+android/app/google-services.json
+google-services-base64.txt

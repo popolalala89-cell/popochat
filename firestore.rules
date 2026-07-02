@@ -19,9 +19,9 @@ service cloud.firestore {
       // Buat: admin & broadcaster bisa
       allow create: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'broadcaster'];
-      // Update: admin & broadcaster
+      // Update: semua anggota bisa update (unreadCount, lastRead, lastMessage, dll)
       allow update: if request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'broadcaster'];
+        request.auth.uid in resource.data.members;
       // Delete: hanya admin
       allow delete: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
