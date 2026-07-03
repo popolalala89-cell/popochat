@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { useEffect, useRef } from 'react';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -8,59 +8,75 @@ function isNative(): boolean {
   return !!(window as any).Capacitor?.isNative;
 }
 
+async function checkAndRegisterToken(uid: string, cancelledRef: { current: boolean }) {
+  try {
+    const { PushNotifications } = await import('@capacitor/push-notifications');
+
+    // Cek apakah token udah ada di Firestore
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    const existingToken = userDoc.data()?.tokenFCM;
+    if (existingToken) {
+      console.log('[FCM] Token already registered:', existingToken.substring(0, 20) + '...');
+      return;
+    }
+
+    let permStatus = await PushNotifications.checkPermissions();
+    if (permStatus.receive === 'prompt') {
+      permStatus = await PushNotifications.requestPermissions();
+    }
+    if (permStatus.receive !== 'granted') {
+      console.log('[FCM] Permission not granted:', permStatus.receive);
+      return;
+    }
+
+    // Register for push
+    await PushNotifications.register();
+
+    // Listen for token
+    PushNotifications.addListener('registration', async (token) => {
+      if (cancelledRef.current) return;
+      await updateDoc(doc(db, 'users', uid), {
+        tokenFCM: token.value,
+      });
+      console.log('[FCM] Token saved:', token.value.substring(0, 20) + '...');
+    });
+
+    PushNotifications.addListener('registrationError', (err) => {
+      console.error('[FCM] Registration error:', err);
+    });
+  } catch (err) {
+    console.log('[FCM] Registration skipped:', err);
+  }
+}
+
 export function useFCM() {
   const { currentUser, userData } = useAuth();
+  const cancelledRef = useRef(false);
+  const registeredRef = useRef(false);
 
   useEffect(() => {
     if (!currentUser) return;
-    // Skip FCM jika bukan native Capacitor (misal: browser dev)
     if (!isNative()) {
       console.log('[FCM] Skipped: running in browser dev mode');
       return;
     }
 
-    let cancelled = false;
+    cancelledRef.current = false;
 
-    async function registerPush() {
-      try {
-        const { PushNotifications } = await import('@capacitor/push-notifications');
+    // Register pertama kali
+    checkAndRegisterToken(currentUser.uid, cancelledRef);
 
-        // Request permission
-        let permStatus = await PushNotifications.checkPermissions();
-        if (permStatus.receive === 'prompt') {
-          permStatus = await PushNotifications.requestPermissions();
-        }
-        if (permStatus.receive !== 'granted') return;
-
-        // Register for push
-        await PushNotifications.register();
-
-        // Listen for token
-        PushNotifications.addListener('registration', async (token) => {
-          if (cancelled || !currentUser) return;
-          // Simpan token FCM ke Firestore
-          await updateDoc(doc(db, 'users', currentUser.uid), {
-            tokenFCM: token.value,
-          });
-        });
-
-        PushNotifications.addListener('registrationError', (err) => {
-          console.error('FCM registration error:', err);
-        });
-
-        // Listen for notification tapped
-        PushNotifications.addListener('pushNotificationReceived', (notification) => {
-          console.log('Push received:', notification);
-        });
-      } catch (err) {
-        console.log('Push registration skipped:', err);
-      }
+    // Retry tiap kali app dapet focus (biar bisa register setelah izin diaktifkan manual)
+    function onFocus() {
+      if (cancelledRef.current) return;
+      // Cek apakah token sudah ada — kalo belum, coba register ulang
+      checkAndRegisterToken(currentUser.uid, cancelledRef);
     }
-
-    registerPush();
+    window.addEventListener('focus', onFocus);
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
+      window.removeEventListener('focus', onFocus);
     };
   }, [currentUser?.uid]);
 }
