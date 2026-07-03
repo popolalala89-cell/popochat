@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Route, Redirect, Switch, useHistory } from 'react-router-dom';
 import {
   IonApp,
@@ -9,6 +9,7 @@ import {
   IonLabel,
   IonTabs,
   IonToast,
+  IonAlert,
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { chatbubbles, person, megaphone, settings } from 'ionicons/icons';
@@ -143,12 +144,32 @@ function AppRoutes() {
 }
 
 const App: React.FC = () => {
-  useNotificationPermission();
+  const { status, needsSettings } = useNotificationPermission();
+  const [settingsAlert, setSettingsAlert] = useState(false);
+
+  useEffect(() => {
+    if (needsSettings) {
+      // Kasih delay biar render dulu
+      const t = setTimeout(() => setSettingsAlert(true), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [needsSettings]);
+
   return (
   <IonApp>
     <AuthProvider>
       <AppRoutes />
     </AuthProvider>
+
+    <IonAlert
+      isOpen={settingsAlert}
+      header={'⚠️ Izin Notifikasi'}
+      message={'Notifikasi sudah pernah ditolak. Aktifkan manual: Settings → Apps → Chat Internal → Notifications → Izinkan.'}
+      buttons={[
+        { text: 'Tutup', role: 'cancel' },
+      ]}
+      onDidDismiss={() => setSettingsAlert(false)}
+    />
   </IonApp>
   );
 };

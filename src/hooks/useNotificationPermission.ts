@@ -1,45 +1,69 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+type NotifPermStatus = 'unknown' | 'granted' | 'denied' | 'requesting';
 
 /**
- * useNotificationPermission — request izin notifikasi (POST_NOTIFICATIONS)
- * saat app pertama kali dibuka, tanpa nunggu login.
- * Untuk Android 13+ (API 33), ini wajib di-runtime request.
+ * useNotificationPermission
+ *
+ * Flow perijinan notifikasi (POST_NOTIFICATIONS) di Android 13+:
+ * - 'prompt'  → tampilkan dialog sistem (popup)
+ * - 'denied'  → set needsSettings=true biar UI bisa ngasih tahu user
+ * - 'granted' → aman, ga perlu apa-apa
+ *
+ * Returns { status, needsSettings } buat dipake komponen UI.
  */
 export function useNotificationPermission() {
   const calledRef = useRef(false);
+  const [status, setStatus] = useState<NotifPermStatus>('unknown');
 
   useEffect(() => {
     if (calledRef.current) return;
     calledRef.current = true;
 
-    // Deteksi apakah di Capacitor native
-    const isNative = !!(window as any).Capacitor?.isNative;
+    const isNative = !!((window as any).Capacitor?.isNative);
     if (!isNative) {
-      console.log('[NotifPerm] Skipped: running in browser');
+      setStatus('granted'); // browser mode, skip
       return;
     }
 
-    // Request izin notifikasi dengan delay kecil biar app sempat render dulu
     const timer = setTimeout(async () => {
       try {
-        const { PushNotifications } = await import('@capacitor/push-notifications');
+        const mod = await import('@capacitor/push-notifications');
+        const pn = mod.PushNotifications;
 
-        const permStatus = await PushNotifications.checkPermissions();
-        console.log('[NotifPerm] Current status:', permStatus.receive);
+        // Langsung cek status
+        const perm = await pn.checkPermissions();
+        console.log('[NotifPerm] Status:', perm.receive);
 
-        if (permStatus.receive === 'prompt') {
-          const result = await PushNotifications.requestPermissions();
-          console.log('[NotifPerm] After request:', result.receive);
-        } else if (permStatus.receive === 'denied') {
-          console.log('[NotifPerm] Previously denied — user must enable manually in Settings');
+        if (perm.receive === 'prompt') {
+          // Minta izin → muncul dialog sistem
+          setStatus('requesting');
+          const result = await pn.requestPermissions();
+          console.log('[NotifPerm] Result:', result.receive);
+
+          if (result.receive === 'granted') {
+            setStatus('granted');
+          } else {
+            // User menekan Deny di dialog
+            setStatus('denied');
+          }
+        } else if (perm.receive === 'denied') {
+          // Pernah di deny sebelumnya — dialog gak muncul lagi
+          setStatus('denied');
         } else {
-          console.log('[NotifPerm] Already granted');
+          setStatus('granted');
         }
       } catch (err) {
-        console.log('[NotifPerm] Error:', err);
+        console.error('[NotifPerm] Error:', err);
+        setStatus('granted'); // fail-safe: anggap granted
       }
-    }, 500);
+    }, 800);
 
     return () => clearTimeout(timer);
   }, []);
+
+  return {
+    status,
+    needsSettings: status === 'denied',
+  };
 }
