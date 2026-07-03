@@ -39,6 +39,7 @@ import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useFCM } from './hooks/useFCM';
+import { useNotificationPermission } from './hooks/useNotificationPermission';
 import { useToastNotifications, registerShowToast } from './hooks/useToastNotifications';
 
 function AppRoutes() {
@@ -142,6 +143,7 @@ function AppRoutes() {
 }
 
 const App: React.FC = () => {
+  useNotificationPermission();
   return (
   <IonApp>
     <AuthProvider>
