@@ -1,5 +1,5 @@
-import React from 'react';
-import { Route, Redirect, Switch } from 'react-router-dom';
+import React, { useState, useCallback } from 'react';
+import { Route, Redirect, Switch, useHistory } from 'react-router-dom';
 import {
   IonApp,
   IonRouterOutlet,
@@ -8,6 +8,7 @@ import {
   IonIcon,
   IonLabel,
   IonTabs,
+  IonToast,
 } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { chatbubbles, person, megaphone, settings } from 'ionicons/icons';
@@ -38,10 +39,27 @@ import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useFCM } from './hooks/useFCM';
+import { useToastNotifications, registerShowToast } from './hooks/useToastNotifications';
 
 function AppRoutes() {
   useFCM();
   const { currentUser, userData, loading } = useAuth();
+  const history = useHistory();
+
+  const [toastMsg, setToastMsg] = useState('');
+  const [toastGroupId, setToastGroupId] = useState('');
+  const [toastOpen, setToastOpen] = useState(false);
+
+  // Register fungsi toast biar bisa dipanggil dari hook
+  React.useEffect(() => {
+    registerShowToast((msg, sender, groupId) => {
+      setToastMsg(`${sender}: ${msg}`);
+      setToastGroupId(groupId);
+      setToastOpen(true);
+    });
+  }, []);
+
+  useToastNotifications();
 
   if (loading) {
     return (
@@ -102,6 +120,23 @@ function AppRoutes() {
           </IonTabs>
         )} />
       </Switch>
+
+      <IonToast
+        isOpen={toastOpen}
+        message={toastMsg}
+        duration={4500}
+        position="top"
+        color="primary"
+        buttons={[
+          {
+            text: 'Buka',
+            handler: () => {
+              if (toastGroupId) history.push(`/chat/${toastGroupId}`);
+            },
+          },
+        ]}
+        onDidDismiss={() => setToastOpen(false)}
+      />
     </IonReactRouter>
   );
 }
